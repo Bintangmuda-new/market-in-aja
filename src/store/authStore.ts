@@ -1,45 +1,133 @@
 // ============================================================
-// Market-In Aja — Auth Global State (Zustand)
+// Zustand Store: Authentication & User Session
 // ============================================================
+
 import { create } from 'zustand';
-import { UserProfile } from '@types/index';
-import { supabase } from '@lib/supabase/client';
+import { supabase } from '../services/supabase';
+import type { User, UserRole } from '../types';
 
 interface AuthState {
-  user: UserProfile | null;
+  user: User | null;
+  session: any | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  setUser: (user: UserProfile | null) => void;
+  
+  // Actions
+  signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  signUp: (params: SignUpParams) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+  setSession: (session: any) => void;
+}
+
+interface SignUpParams {
+  email: string;
+  password: string;
+  full_name: string;
+  phone_number: string;
+  role: UserRole;
+  address: string;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  isLoading: true,
+  session: null,
+  isLoading: false,
   isAuthenticated: false,
 
-  setUser: (user) =>
-    set({ user, isAuthenticated: !!user, isLoading: false }),
+  signIn: async (email, password) => {
+    set({ isLoading: true });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (error) {
+      set({ isLoading: false });
+      return { error: 'Email atau kata sandi tidak valid. Silakan coba lagi.' };
+    }
+
+    // Fetch user profile from public.users
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profileError) {
+      set({ isLoading: false });
+      return { error: 'Gagal memuat profil pengguna.' };
+    }
+
+    if (profile.status === 'pending') {
+      await supabase.auth.signOut();
+      set({ isLoading: false });
+      return { error: 'Akun Anda sedang menunggu verifikasi dari admin. Harap bersabar.' };
+    }
+
+    if (profile.status === 'rejected') {
+      await supabase.auth.signOut();
+      set({ isLoading: false });
+      return { error: 'Akun Anda telah ditolak. Hubungi dukungan Sama-Tani untuk informasi lebih lanjut.' };
+    }
+
+    set({
+      user: profile,
+      session: data.session,
+      isAuthenticated: true,
+      isLoading: false,
+    });
+
+    return {};
+  },
+
+  signUp: async (params) => {
+    set({ isLoading: true });
+    const { data, error } = await supabase.auth.signUp({
+      email: params.email,
+      password: params.password,
+    });
+
+    if (error) {
+      set({ isLoading: false });
+      return { error: 'Gagal mendaftar. ' + error.message };
+    }
+
+    if (data.user) {
+      // Insert profile — status defaults to 'pending' (enforced at DB level)
+      const { error: profileError } = await supabase.from('users').insert({
+        id: data.user.id,
+        full_name: params.full_name,
+        phone_number: params.phone_number,
+        role: params.role,
+        address: params.address,
+        // status: 'pending' is the default
+      });
+
+      if (profileError) {
+        set({ isLoading: false });
+        return { error: 'Gagal menyimpan data profil.' };
+      }
+    }
+
+    set({ isLoading: false });
+    return {};
+  },
 
   signOut: async () => {
     await supabase.auth.signOut();
-    set({ user: null, isAuthenticated: false });
+    set({ user: null, session: null, isAuthenticated: false });
   },
 
-  refreshProfile: async () => {
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
-    if (!authUser) return;
+  refreshUser: async () => {
+    const { user } = get();
+    if (!user) return;
 
-    const { data: profile, error } = await supabase
-      .from('user_profiles')
+    const { data } = await supabase
+      .from('users')
       .select('*')
-      .eq('auth_id', authUser.id)
+      .eq('id', user.id)
       .single();
 
-    if (error || !profile) return;
-    set({ user: profile as UserProfile, isAuthenticated: true, isLoading: false });
+    if (data) set({ user: data });
   },
+
+  setSession: (session) => set({ session }),
 }));
