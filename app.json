@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "Market-In Aja",
+    "slug": "market-in-aja",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "marketinaja",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#16a34a"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "id.samatani.marketinaja",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Market-In Aja membutuhkan akses lokasi untuk menampilkan produk terdekat dan melacak pengiriman Anda.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Market-In Aja membutuhkan akses lokasi di latar belakang untuk melacak armada pengiriman secara real-time.",
+        "NSCameraUsageDescription": "Market-In Aja membutuhkan kamera untuk mengunggah foto produk dan video call.",
+        "NSMicrophoneUsageDescription": "Market-In Aja membutuhkan mikrofon untuk fitur panggilan video negosiasi."
+      },
+      "backgroundModes": ["location", "fetch"]
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#16a34a"
+      },
+      "package": "id.samatani.marketinaja",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
+      "googleServicesFile": "./google-services.json"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#16a34a"
+        }
+      ],
+      [
+        "expo-task-manager",
+        {}
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
